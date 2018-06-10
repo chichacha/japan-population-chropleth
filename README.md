@@ -14,3 +14,12 @@ I wanted to figure out if I can overlay location data on top of chropleth map, s
 
 ## Chropleth Map of Japan (coloured with population data from 2016 Jan 1st)
 
+![Japan Chropleth Population Map](https://github.com/chichacha/japan-population-chropleth/blob/master/PNGs/JapanChropleth.png "Japan")
+
+
+### Tokyo 
+Tokyo excluding islands. 
+![Tokyo](https://github.com/chichacha/japan-population-chropleth/blob/master/PNGs/Tokyo.png "Japan")
+
+### Kanagawa Prefecture
+![Kanagawa](https://github.com/chichacha/japan-population-chropleth/blob/master/PNGs/Kanagawa.png "Japan")
