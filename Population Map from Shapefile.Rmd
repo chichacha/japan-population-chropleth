@@ -1,0 +1,153 @@
+---
+title: "Creating Map from Shapefile "
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+## Get all Library Needed to Make this Happen!
+
+```{r setup}
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE,
+	include = FALSE
+)
+
+library(tidyverse)
+library(scales)
+library(ggthemes)
+library(hrbrthemes)
+library(sf) 
+library(glue)
+library(ggrepel)
+
+```
+
+
+
+## Prepping Things by Downloading What's Needed
+
+```{r getIngredientTogether}
+
+# Download Shapefile from ESRI site (For Japan map, I donwloaded from below)
+# https://www.esrij.com/products/japan-shp/
+
+japan.map <- sf::read_sf("Shapefiles/japan_ver81/japan_ver81.shp")
+japan.map <- japan.map %>% mutate(pref_cd = str_sub(JCODE,1L,2L), pref_no = as.integer(pref_cd))
+
+## Read Other Files 
+train.lines.df <- read_rds("Data/JapanStationData.rds")
+japan.prefecture <- read_rds("Data/JapanPrefecture.rds")
+
+```
+
+
+## Because I want all map to look similar, I'm setting up global theme!
+
+```{r global_map_theme}
+
+theme_map_chi <- function(...) {
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Hiragino Sans W3", color = "black"),
+    axis.line = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_line(color = "#ebebe5", size = 0.2),
+    panel.grid.minor = element_blank(),
+    plot.background = element_rect(fill = "#ffffff", color = NA), 
+    panel.background = element_rect(fill = "#ffffff", color = NA), 
+    legend.background = element_rect(fill = "#ffffff", color = NA),
+    panel.border = element_blank(),
+    ...
+  )
+}
+
+```
+
+
+
+
+```{r}
+## I want station that has transfers of lines
+major.station <- train.lines.df %>% ungroup() %>%
+  group_by(prefs_cd ,station) %>%
+  summarise(n=n(),lat=mean(lat), lon=mean(lon), 
+            line.name.list = paste(line.name, collapse="|")) %>%
+  filter(n>1) %>%
+  mutate(pref_no = as.integer(prefs_cd)) %>%
+  group_by(pref_no) %>%
+  add_count() %>%
+  filter((nn>40 & n>2)|(nn<=40 & n>1))
+
+
+##  This function will create Map for selected prefecture.  
+## 1 is Hokkaido, 13 is Tokyo, 14 is Kanagawa
+submap <- function(pref_num){
+  
+  if(pref_num==13)  ## If Tokyo remove island 
+  prefecture <- japan.map %>% filter(pref_no==pref_num) %>% arrange(-P_NUM) %>% filter(is.na(SICHO))
+  else
+  prefecture <- japan.map %>% filter(pref_no==pref_num) %>% arrange(-P_NUM)
+  
+  train.lines.sub <- train.lines.df %>% 
+    mutate(pref_no = as.integer(prefs_cd)) %>% filter(pref_no==pref_num)
+  selected.pref <- japan.prefecture %>% filter(pref_no==pref_num)
+  
+  train.summary <- train.lines.sub %>% ungroup() %>% 
+    summarise(station.cnt=n(), line.cnt=n_distinct(line.cd))
+  
+  major.station.selected <- major.station %>% filter(pref_no==pref_num)
+  
+  pref.map <- prefecture %>% ggplot() + geom_sf(aes(fill=P_NUM), alpha=0.8, size=0.02) +
+    scale_fill_viridis_c(end=0.8, option="magma", label=comma, name="Population") +
+    theme_map_chi() +
+    geom_point(data=train.lines.sub, aes(x=lon, y=lat),color="white",alpha=0.5, shape=4) +
+    labs(title=glue('{selected.pref$prefecture_en[1]} : {selected.pref$prefecture_ja[1]}'),
+         subtitle = glue("{train.summary$station.cnt[1]} train stations {train.summary$line.cnt[1]} train lines in {selected.pref$prefecture_en[1]}  
+                         Most populated city in {selected.pref$prefecture_en[1]} is {prefecture$CITY_ENG[1]} with {round(prefecture$P_NUM[1]/1000)}K in Population")) +
+    geom_label_repel(data=major.station.selected, aes(x=lon,y=lat, label=station ),
+                     family="Hiragino Sans W2", segment.color="#c0c0c090", fill="#ffffff30")
+  print(pref.map)
+}
+
+## Testing Area
+
+## I can create map of Kanagawa with 14L
+# submap(14L)
+
+base.map <-japan.map %>% ggplot() + geom_sf(aes(fill=P_NUM), alpha=0.8, size=0.01) +
+  theme_map_chi() +
+  scale_fill_viridis_c(end=0.8, option="magma", label=comma, name="Population") +
+  labs(title="Japan (日本)")
+
+base.map
+
+
+## write it to pdf
+cairo_pdf(file="Japan_Prefecture.pdf", width=16, height=9, onefile=T, family="Hiragino Sans W3")
+
+print(base.map)
+
+for (i in c(1L:47L)){
+  submap(i)
+}
+dev.off()
+
+
+
+
+
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
