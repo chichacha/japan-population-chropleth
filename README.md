@@ -18,8 +18,11 @@ I wanted to figure out if I can overlay location data on top of chropleth map, s
 
 
 ### Tokyo 
-Tokyo excluding islands. 
+Tokyo excluding islands.  
+x is where train stations are located. Train station with more than 3 transfers are labeled.  (Little too crowded for Tokyo, probably need to adjust later.)
+
 ![Tokyo](https://github.com/chichacha/japan-population-chropleth/blob/master/PNGs/Tokyo.png "Japan")
 
 ### Kanagawa Prefecture
+x is where train stations are located. 
 ![Kanagawa](https://github.com/chichacha/japan-population-chropleth/blob/master/PNGs/Kanagawa.png "Japan")
