@@ -145,9 +145,23 @@ dev.off()
 
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+## Sample PNGs
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+```{r}
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+png(filename = "PNGs/JapanChropleth.png", width=6400, height=6400, res=300)
+base.map
+dev.off()
+
+png(filename="PNGs/Tokyo.png", width=6400, height=3955, res=300)
+submap(13L)
+dev.off()
+
+
+png(filename="PNGs/Kanagawa.png", width=6400, height=3955, res=300)
+submap(14L)
+dev.off()
+
+```
+
 
