@@ -1,0 +1,62 @@
+---
+title: "Tokyo Special 23 Wards"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+  
+---
+
+## Tokyo
+
+Wanted to figure out how to label text in the middle of area using "st_centroid"
+
+```{r}
+
+tokyo <- japan.map %>% 
+  filter(pref_no==13 & is.na(SICHO))
+
+## initial attempt was to only plot 23 wards, but I can't with error message
+#Error in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y,  : 
+#  polygon edge not found
+
+### Hmm below article might be related?!
+#https://stackoverflow.com/questions/10581440/error-in-grid-calll-textbounds-as-graphicsannotxlabel-xx-xy-polygon
+
+tokyo.base <-tokyo %>% ggplot() + 
+  geom_sf(aes(fill=P_NUM, alpha=ifelse(str_detect(JCODE,"(^131)"),"23 wards","Other"))) +
+  theme_map_chi() +
+  scale_fill_viridis_c(end=0.8, option="magma", name="Population (2016)", label=comma) +
+  labs(title="All of Tokyo") +
+  scale_alpha_manual(values=c(0.9,0.1), name="Tokyo 23 Wards vs Other City")
+
+## I want to label the city... So how can I find center?
+## Looks like this is what I'm trying to do! But instead of dots, I want text... 
+# https://gis.stackexchange.com/questions/43543/how-to-calculate-polygon-centroids-in-r-for-non-contiguous-shapes
+# https://github.com/tidyverse/ggplot2/issues/2111 
+
+#tokyo.cent <- sf::st_centroid(tokyo)
+
+## This is to get center of area to plot the text
+tokyo.sf <- tokyo %>%
+  mutate(
+    CENTROID = map(geometry, st_centroid), # get centroid
+    COORDS = map(CENTROID, st_coordinates), # them get the coordinates out
+    COORDS_X = map_dbl(COORDS, 1), # get lon to x
+    COORDS_Y = map_dbl(COORDS, 2) # get lat to y
+  ) 
+
+#%>%
+#  as_tibble() %>%
+#  st_as_sf()
+png(filename="PNGs/TokyoBetter.png", width=6400, height=3955, res=300)
+ggplot(data = tokyo.sf) +
+  geom_sf(aes(fill=P_NUM, alpha=ifelse(str_detect(JCODE,"(^131)"),"23 wards","Other"))) +
+  geom_text(mapping = aes(COORDS_X, COORDS_Y, label = SIKUCHOSON ), size = 3, family="Osaka") +
+  theme_map_chi() + # styling - not necessary +
+  scale_alpha_manual(values=c(0.9,0.8), guide="none") +
+  scale_fill_viridis_c(end=0.8, option="magma", name="Population (2016)", label=comma)
+dev.off()
+
+```
+
+

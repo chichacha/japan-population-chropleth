@@ -40,6 +40,18 @@ japan.map <- japan.map %>% mutate(pref_cd = str_sub(JCODE,1L,2L), pref_no = as.i
 train.lines.df <- read_rds("Data/JapanStationData.rds")
 japan.prefecture <- read_rds("Data/JapanPrefecture.rds")
 
+
+## Adding extra info so i can plot label
+
+japan.map <- japan.map %>%
+  mutate(
+    centroid = map(geometry, st_centroid), # get centroid
+    coords = map(centroid, st_coordinates), # them get the coordinates out
+    coords_x = map_dbl(coords, 1), # get lon to x
+    coords_y = map_dbl(coords, 2) # get lat to y
+  ) 
+
+
 ```
 
 
@@ -115,17 +127,53 @@ submap <- function(pref_num){
   print(pref.map)
 }
 
+
+submap_citylabel <- function(pref_num){
+  
+  if(pref_num==13)  ## If Tokyo remove island 
+  prefecture <- japan.map %>% filter(pref_no==pref_num) %>% arrange(-P_NUM) %>% filter(is.na(SICHO))
+  else
+  prefecture <- japan.map %>% filter(pref_no==pref_num) %>% arrange(-P_NUM)
+  
+  selected.pref <- japan.prefecture %>% filter(pref_no==pref_num)
+  
+  pref.map <- prefecture %>% ggplot() + geom_sf(aes(fill=P_NUM), alpha=0.9, size=0.02) +
+    scale_fill_viridis_c(end=0.8, option="magma", label=comma, name="Population") +
+    theme_map_chi() +
+    labs(title=glue('{selected.pref$prefecture_en[1]} : {selected.pref$prefecture_ja[1]}'),
+         subtitle = glue("Most populated city in {selected.pref$prefecture_en[1]} is {prefecture$CITY_ENG[1]} with {round(prefecture$P_NUM[1]/1000)}K in Population")) +
+    geom_text(aes(x=coords_x, y=coords_y, label=SIKUCHOSON, color=P_NUM), size=3, family="Hiragino Sans W3") +
+    scale_color_gradient(low="white", high="#f0f0f0")
+  print(pref.map)
+}
+
+submap_citylabel(14L)
+
 ## Testing Area
 
 ## I can create map of Kanagawa with 14L
 # submap(14L)
 
-base.map <-japan.map %>% ggplot() + geom_sf(aes(fill=P_NUM), alpha=0.8, size=0.01) +
+base.map <-japan.map %>% ggplot() + geom_sf(aes(fill=P_NUM), alpha=0.9, size=0.03) +
   theme_map_chi() +
   scale_fill_viridis_c(end=0.8, option="magma", label=comma, name="Population") +
   labs(title="Japan (日本)")
 
-base.map
+
+japan.map <-japan.map %>% ungroup()  %>% mutate(pop_rank=row_number(-P_NUM))
+base.map + 
+  geom_text_repel(data=japan.map %>% filter(pop_rank<=20),
+                   aes(x=coords_x, y=coords_y, label=paste0(pop_rank,".",SIKUCHOSON)), family="Hiragino Sans W3", 
+                   size=3, min.segment.length=0, nudge_x=25, segment.color="#c5c5c540")
+
+#ggplot(japan.map, aes(x=P_NUM)) + stat_ecdf(geom="point", alpha=0.3) + theme_ipsum_rc()
+# City with population above 250000 is quite few
+
+base.map2 <-base.map + 
+  geom_text_repel(data=japan.map %>% filter(pop_rank<=20),
+                   aes(x=coords_x, y=coords_y, label=paste0(pop_rank,".",SIKUCHOSON)), family="Hiragino Sans W3", 
+                   size=3, min.segment.length=0, nudge_x=25, segment.color="#c5c5c540") +
+  labs(title="Japan: Top 20 Populated Areas of Japan")
 
 
 ## write it to pdf
@@ -135,6 +183,15 @@ print(base.map)
 
 for (i in c(1L:47L)){
   submap(i)
+}
+dev.off()
+
+
+cairo_pdf(file="Japan_Prefecture_CityName.pdf", width=16, height=9, onefile=T, family="Hiragino Sans W3")
+print(base.map)
+print(base.map2)
+for (i in c(1L:47L)){
+  submap_citylabel(i)
 }
 dev.off()
 
