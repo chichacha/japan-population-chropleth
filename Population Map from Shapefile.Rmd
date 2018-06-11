@@ -147,7 +147,7 @@ submap_citylabel <- function(pref_num){
   print(pref.map)
 }
 
-submap_citylabel(14L)
+
 
 ## Testing Area
 
@@ -214,10 +214,19 @@ png(filename="PNGs/Tokyo.png", width=6400, height=3955, res=300)
 submap(13L)
 dev.off()
 
+png(filename="PNGs/Tokyo_Labeled.png", width=6400, height=3955, res=300)
+submap_citylabel(13L)
+dev.off()
+
 
 png(filename="PNGs/Kanagawa.png", width=6400, height=3955, res=300)
 submap(14L)
 dev.off()
+
+png(filename="PNGs/Kanagawa_CityLabel.png", width=6400, height=3955, res=300)
+submap_citylabel(14L)
+dev.off()
+
 
 ```
 
